@@ -1,6 +1,6 @@
 [project]
 name = "evrima.py"
-version = "0.2.0"
+version = "0.2.2"
 description = "Python tools for The Isle: Evrima RCON and server operations"
 authors = [{name = "Keagan Landfried", email = "keaganlandfried@gmail.com"}]
 readme = "README.md"
@@ -12,12 +12,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 keywords = ["evrima", "the isle", "rcon", "game server", "evrima rcon", "the isle rcon", "evrima.py"]
-dependencies = []
+dependencies = [
+    "gamercon-async>=1.0.7"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/zennara/evrima.py"
 "Bug Tracker" = "https://github.com/zennara/evrima.py/issues"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "gamercon-async>=1.0.7"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
