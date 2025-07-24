@@ -1,7 +1,15 @@
-from evrima.rcon.models import Player
+from evrima.rcon.models import Player, PlayerData, Location, ServerDetails
 
 
 def parse_player_list(raw: str) -> list[Player]:
+    """
+    Parses the raw player list from the server response.
+
+    Args:
+        raw (str): The raw response string from the server containing player information.
+    Returns:
+        list[Player]: A list of Player objects containing steam IDs and names.
+    """
     raw = raw.replace("PlayerList", "").replace("\n", "").strip()
     items = [item for item in raw.split(",") if item]
     half = len(items) // 2
@@ -11,9 +19,15 @@ def parse_player_list(raw: str) -> list[Player]:
     return players
 
 
-from evrima.rcon.models import PlayerData, Location
-
 def parse_player_data(raw_data: str) -> list[PlayerData]:
+    """
+    Parses the raw player data from the server response.
+
+    Args:
+        raw_data (str): The raw response string from the server containing player data.
+    Returns:
+        list[PlayerData]: A list of PlayerData objects containing detailed player information.
+    """
     players = []
     for line in raw_data.strip().split('\n'):
         line = line.strip()
@@ -66,9 +80,15 @@ def parse_player_data(raw_data: str) -> list[PlayerData]:
     return players
 
 
-from evrima.rcon.models import ServerDetails
-
 def parse_server_details(raw: str) -> ServerDetails:
+    """
+    Parses the raw response from the server to extract server details.
+
+    Args:
+        raw (str): The raw response string from the server.
+    Returns:
+        ServerDetails: An object containing the parsed server details.
+    """
     if raw.startswith('[') and '] ' in raw:
         raw = raw.split('] ', 1)[1]
     parts = [p.strip() for p in raw.split(',')]
@@ -114,13 +134,15 @@ def parse_server_details(raw: str) -> ServerDetails:
     )
 
 
-def are_humans_enabled(raw: str) -> bool:
-    if "On" in raw:
-        return True
-    return False
-
-
 def parse_playables_update(raw: str) -> list[str]:
+    """
+    Parses the raw response from the server to extract the list of playable dinosaurs.
+
+    Args:
+        raw (str): The raw response string from the server.
+    Returns:
+        list[str]: A list of dinosaur classes that are currently playable.
+    """
     raw = raw.split(':')[1].strip()
     dinos = [dino.strip() for dino in raw.split(',') if dino.strip()]
     return dinos
