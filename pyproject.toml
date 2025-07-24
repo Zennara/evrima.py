@@ -1,0 +1,23 @@
+[project]
+name = "evrima.py"
+version = "0.1.0"
+description = "Python tools for The Isle: Evrima RCON and server operations"
+authors = [{name = "Keagan Landfried", email = "keaganlandfried@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["evrima", "the isle", "rcon", "game server", "evrima rcon", "the isle rcon", "evrima.py"]
+dependencies = []
+
+[project.urls]
+"Homepage" = "https://github.com/zennara/evrima.py"
+"Bug Tracker" = "https://github.com/zennara/evrima.py/issues"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
