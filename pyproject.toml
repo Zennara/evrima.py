@@ -1,6 +1,6 @@
 [project]
 name = "evrima.py"
-version = "0.2.2"
+version = "0.3.0"
 description = "Python tools for The Isle: Evrima RCON and server operations"
 authors = [{name = "Keagan Landfried", email = "keaganlandfried@gmail.com"}]
 readme = "README.md"
