@@ -47,75 +47,101 @@ class Client:
             ConnectionFailed: If the connection to the RCON server fails.
             CommandFailed: If the command execution fails or the response is invalid.
         """
-        reader = None
-        writer = None
-
-        try:
+        max_retries = 3
+        for attempt in range(max_retries):
+            reader = None
+            writer = None
             try:
-                reader, writer = await asyncio.wait_for(
-                    asyncio.open_connection(self.host, self.port),
-                    timeout=self.timeout
-                )
-            except asyncio.TimeoutError:
-                raise ConnectionFailed(f"Connection timeout after {self.timeout}s")
-            except ConnectionRefusedError:
-                raise ConnectionFailed("RCON Failed: Server Offline or RCON not enabled.")
-            except OSError as e:
-                if "No route to host" in str(e):
-                    raise ConnectionFailed("RCON Failed: No route to host")
-                raise ConnectionFailed(f"Connection failed: {e}")
-
-            login_payload = b'\x01' + self.password.encode('utf-8') + b'\x00'
-            writer.write(login_payload)
-            await asyncio.wait_for(writer.drain(), timeout=self.timeout)
-
-            try:
-                login_response = await asyncio.wait_for(
-                    reader.read(8192),
-                    timeout=self.timeout
-                )
-            except asyncio.TimeoutError:
-                raise ConnectionFailed("Login timeout - no response from server")
-
-            if not login_response or b"Accepted" not in login_response:
-                raise ConnectionFailed("RCON login failed - invalid password or server error")
-
-            writer.write(command)
-            await asyncio.wait_for(writer.drain(), timeout=self.timeout)
-
-            all_data = b''
-            buffer_size = 8192
-
-            while True:
                 try:
-                    data = await asyncio.wait_for(
-                        reader.read(buffer_size),
+                    reader, writer = await asyncio.wait_for(
+                        asyncio.open_connection(self.host, self.port),
                         timeout=self.timeout
                     )
-                    if not data:
-                        break
-                    all_data += data
-
                 except asyncio.TimeoutError:
-                    break
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    raise ConnectionFailed(f"Connection timeout after {self.timeout}s")
+                except ConnectionRefusedError:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    raise ConnectionFailed("RCON Failed: Server Offline or RCON not enabled.")
+                except OSError as e:
+                    if "No route to host" in str(e):
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(1)
+                            continue
+                        raise ConnectionFailed("RCON Failed: No route to host")
+                    raise ConnectionFailed(f"Connection failed: {e}")
 
-            if not all_data:
-                raise CommandFailed("No response received from RCON server")
+                login_payload = b'\x01' + self.password.encode('utf-8') + b'\x00'
+                writer.write(login_payload)
+                await asyncio.wait_for(writer.drain(), timeout=self.timeout)
 
-            return all_data.decode('utf-8', errors='ignore')
-
-        except (ConnectionFailed, CommandFailed):
-            raise
-        except Exception as e:
-            raise CommandFailed(f"Error executing RCON command: {e}")
-
-        finally:
-            if writer:
                 try:
-                    writer.close()
-                    await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
-                except:
-                    pass
+                    login_response = await asyncio.wait_for(
+                        reader.read(8192),
+                        timeout=self.timeout
+                    )
+                except asyncio.TimeoutError:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    raise ConnectionFailed("Login timeout - no response from server")
+
+                if not login_response or b"Accepted" not in login_response:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    raise ConnectionFailed("RCON login failed - invalid password or server error")
+
+                writer.write(command)
+                await asyncio.wait_for(writer.drain(), timeout=self.timeout)
+
+                all_data = b''
+                buffer_size = 8192
+
+                while True:
+                    try:
+                        data = await asyncio.wait_for(
+                            reader.read(buffer_size),
+                            timeout=self.timeout
+                        )
+                        if not data:
+                            break
+                        all_data += data
+                    except asyncio.TimeoutError:
+                        break
+
+                if not all_data:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        print("RCON command returned no data, retrying...")
+                        continue
+                    raise CommandFailed("No response received from RCON server")
+
+                return all_data.decode('utf-8', errors='ignore')
+
+            except (ConnectionFailed, CommandFailed):
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1)
+                    continue
+                raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1)
+                    continue
+                raise CommandFailed(f"Error executing RCON command: {e}")
+            finally:
+                if writer:
+                    try:
+                        writer.close()
+                        await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
+                    except:
+                        pass
+        # If all retries fail
+        raise CommandFailed("Failed to execute RCON command after retries")
 
     async def get_server_details(self) -> ServerDetailsResponse:
         """
